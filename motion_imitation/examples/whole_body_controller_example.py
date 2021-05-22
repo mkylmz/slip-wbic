@@ -216,6 +216,9 @@ def main(argv):
   dt = 0.001
   myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
   slip_sol = myslip.step_apex_to_apex()
+  total_motion_time = slip_sol.t_events[5][0]
+  total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
+  total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
