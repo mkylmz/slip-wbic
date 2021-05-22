@@ -15,7 +15,7 @@ class slip2d():
         self.dt         = dt
 
         self.mass       = 11.00
-        self.stiffness  = 4000.0
+        self.stiffness  = 8000.0
         self.r_length   = rest_length
         self.cur_length = rest_length
         self.aoa        = aoa

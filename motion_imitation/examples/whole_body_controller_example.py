@@ -30,7 +30,9 @@ from mpc_controller import torque_stance_leg_controller_quadprog as torque_stanc
 
 from motion_imitation.robots import a1
 from motion_imitation.robots import robot_config
-from motion_imitation.robots.gamepad import gamepad_reader
+from motion_imitation.robots.gamepad import gamepad_reader # type: ignore
+
+from slip.slip2d import slip2d
 
 flags.DEFINE_string("logdir", None, "where to log trajectories.")
 flags.DEFINE_bool("use_gamepad", False,
@@ -100,6 +102,13 @@ def _generate_example_linear_angular_speed(t):
 
   return speed[0:3], speed[3], False
 
+def _generate_slip_trajectory_tracking(slip_sol,t):
+  cur_timestep = t%slip_sol.t[-1]//0.001
+  # state vector [ x, y, xdot, ydot, toe_x, toe_y]
+  lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
+  ang_vel = 0
+  body_height = slip_sol.y[1][int(cur_timestep)]
+  return lin_vel, ang_vel, body_height, False
 
 def _setup_controller(robot):
   """Demonstrates how to create a locomotion controller."""
@@ -150,6 +159,15 @@ def _update_controller_params(controller, lin_speed, ang_speed):
   controller.stance_leg_controller.desired_speed = lin_speed
   controller.stance_leg_controller.desired_twisting_speed = ang_speed
 
+def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height):
+
+  controller.swing_leg_controller.desired_speed = lin_speed
+  controller.swing_leg_controller.desired_twisting_speed = ang_speed
+  controller.swing_leg_controller._desired_height = np.array((0, 0, body_height - 0.01))
+  controller.stance_leg_controller.desired_speed = lin_speed
+  controller.stance_leg_controller.desired_twisting_speed = ang_speed
+  controller.stance_leg_controller._desired_body_height = body_height
+
 
 def main(argv):
   """Runs the locomotion controller example."""
@@ -192,6 +210,13 @@ def main(argv):
     command_function = gamepad.get_command
   else:
     command_function = _generate_example_linear_angular_speed
+  
+  aoa = 0
+  rest_length = 0.25
+  dt = 0.001
+  myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
+  slip_sol = myslip.step_apex_to_apex()
+  command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
     logdir = os.path.join(FLAGS.logdir,
@@ -206,12 +231,12 @@ def main(argv):
     start_time_robot = current_time
     start_time_wall = time.time()
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed, e_stop = command_function(current_time)
+    lin_speed, ang_speed, body_height, e_stop = command_function(slip_sol, current_time)
     # print(lin_speed)
     if e_stop:
       logging.info("E-stop kicked, exiting...")
       break
-    _update_controller_params(controller, lin_speed, ang_speed)
+    _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
     controller.update()
     hybrid_action, _ = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
@@ -225,7 +250,7 @@ def main(argv):
       actual_duration = time.time() - start_time_wall
       if actual_duration < expected_duration:
         time.sleep(expected_duration - actual_duration)
-    print("actual_duration=", actual_duration)
+    #print("actual_duration=", actual_duration)
   if FLAGS.use_gamepad:
     gamepad.stop()
 
