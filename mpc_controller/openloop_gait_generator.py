@@ -146,6 +146,12 @@ class OpenloopGaitGenerator(gait_generator.GaitGenerator):
     """
     return self._normalized_phase
 
+  def change_gait_parameters(self, stance_duration, duty_factor):
+    self._stance_duration = stance_duration
+    self._duty_factor = duty_factor
+    self._swing_duration = np.array(stance_duration) / np.array(
+        duty_factor) - np.array(stance_duration)
+
   def update(self, current_time):
     contact_state = self._robot.GetFootContacts()
     for leg_id in range(self._robot.num_legs):

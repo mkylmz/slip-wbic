@@ -18,7 +18,7 @@ import pybullet_data
 from pybullet_utils import bullet_client
 import pybullet  # pytype:disable=import-error
 
-from mpc_controller import com_velocity_estimator
+from mpc_controller import com_velocity_estimator, gait_generator
 from mpc_controller import gait_generator as gait_generator_lib
 from mpc_controller import locomotion_controller
 from mpc_controller import openloop_gait_generator
@@ -233,6 +233,10 @@ def main(argv):
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
+
+    ## Apex-to-Apex parameters changes
+    controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+
     # Updates the controller behavior parameters.
     lin_speed, ang_speed, body_height, e_stop = command_function(slip_sol, current_time)
     # print(lin_speed)
