@@ -168,6 +168,10 @@ def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height
   controller.stance_leg_controller.desired_twisting_speed = ang_speed
   controller.stance_leg_controller._desired_body_height = body_height
 
+def check_apex(controller, old_z_vel):
+  if old_z_vel <= 0 and controller.state_estimator._com_velocity_world_frame[2] >= 0:
+    return True
+  return False
 
 def main(argv):
   """Runs the locomotion controller example."""
@@ -215,10 +219,6 @@ def main(argv):
   rest_length = 0.25
   dt = 0.001
   myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
-  slip_sol = myslip.step_apex_to_apex()
-  total_motion_time = slip_sol.t_events[5][0]
-  total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
-  total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
@@ -229,13 +229,21 @@ def main(argv):
   start_time = robot.GetTimeSinceReset()
   current_time = start_time
   com_vels, imu_rates, actions = [], [], []
+  old_z_vel = 0
   while current_time - start_time < FLAGS.max_time_secs:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
 
     ## Apex-to-Apex parameters changes
-    controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+    if ( check_apex(controller,old_z_vel) ):
+      slip_sol = myslip.step_apex_to_apex()
+      total_motion_time = slip_sol.t_events[5][0]
+      total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
+      total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
+      controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+    ## Update old z velocity
+    old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
 
     # Updates the controller behavior parameters.
     lin_speed, ang_speed, body_height, e_stop = command_function(slip_sol, current_time)
