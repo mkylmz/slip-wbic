@@ -106,7 +106,7 @@ def _generate_example_linear_angular_speed(t):
 def _generate_slip_trajectory_tracking(slip_sol,t):
   cur_timestep = t%slip_sol.t[-1]//0.001
   # state vector [ x, y, xdot, ydot, toe_x, toe_y]
-  lin_vel = [slip_sol.y[2][int(cur_timestep)]*2,0,0]
+  lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
   ang_vel = 0
   body_height = slip_sol.y[1][int(cur_timestep)]
   return lin_vel, ang_vel, body_height
