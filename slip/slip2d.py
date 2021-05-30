@@ -222,3 +222,6 @@ class slip2d():
         self.state      = [ x, y, xdot, ydot, 
                             x+np.sin(self.aoa)*self.r_length, 
                             y-np.cos(self.aoa)*self.r_length]
+    
+    def set_aoa(self, new_aoa):
+        self.aoa = new_aoa
