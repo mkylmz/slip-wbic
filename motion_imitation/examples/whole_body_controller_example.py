@@ -13,6 +13,7 @@ import numpy as np
 import os
 import scipy.interpolate
 import time
+import math
 
 import pybullet_data
 from pybullet_utils import bullet_client
@@ -105,10 +106,10 @@ def _generate_example_linear_angular_speed(t):
 def _generate_slip_trajectory_tracking(slip_sol,t):
   cur_timestep = t%slip_sol.t[-1]//0.001
   # state vector [ x, y, xdot, ydot, toe_x, toe_y]
-  lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
+  lin_vel = [slip_sol.y[2][int(cur_timestep)]*2,0,0]
   ang_vel = 0
   body_height = slip_sol.y[1][int(cur_timestep)]
-  return lin_vel, ang_vel, body_height, False
+  return lin_vel, ang_vel, body_height
 
 def _setup_controller(robot):
   """Demonstrates how to create a locomotion controller."""
@@ -230,28 +231,60 @@ def main(argv):
   current_time = start_time
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
+  K_p = 0.2
+  xdot_des = 0.1
+  total_stance_time = 0
+  total_flight_time = 0
+  total_motion_time = 0
+  slip_active = False
+  slip_solved = False
   while current_time - start_time < FLAGS.max_time_secs:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
 
-    ## Apex-to-Apex parameters changes
-    if ( check_apex(controller,old_z_vel) ):
+    ## check whether to start slip
+    spaceKey = ord(' ')
+    keys = p.getKeyboardEvents()
+    if spaceKey in keys and keys[spaceKey] & p.KEY_WAS_TRIGGERED:
+        slip_active = not slip_active
+
+
+    ## Apex-to-Apex slip model/controller
+    if ( slip_active and check_apex(controller,old_z_vel) ):
+      
+      # Update new state variables
+      robot_vel = controller.state_estimator._com_velocity_body_frame
+      robot_height = controller.stance_leg_controller._robot_com_position[2]
+      myslip.update_state( 0, robot_height, robot_vel[0], robot_vel[2])
+      ## Use Raiberts controller
+      xdot_avg = robot_vel[0]
+      x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
+      if (x_f > rest_length):
+          x_f = rest_length
+      aoa = math.asin(x_f/rest_length)
+      myslip.set_aoa(aoa)
+      ## Solve slip model
       slip_sol = myslip.step_apex_to_apex()
-      total_motion_time = slip_sol.t_events[5][0]
-      total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
-      total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
-      controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+      if slip_sol.failed:
+        slip_solved = False
+        print("Slip failed")
+      else:
+        total_motion_time = slip_sol.t_events[5][0]
+        total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
+        total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
+        controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+        slip_solved = True
     ## Update old z velocity
     old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
 
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed, body_height, e_stop = command_function(slip_sol, current_time)
-    # print(lin_speed)
-    if e_stop:
-      logging.info("E-stop kicked, exiting...")
-      break
-    _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
+    if slip_active and slip_solved:
+      lin_speed, ang_speed, body_height = command_function(slip_sol, current_time)
+      _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
+      print(lin_speed)
+    else:
+      _update_controller_params(controller,[0,0,0],0)
     controller.update()
     hybrid_action, _ = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())

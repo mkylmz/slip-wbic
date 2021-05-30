@@ -99,6 +99,7 @@ class TorqueStanceLegController(leg_controller.LegController):
 
     robot_com_position = np.array(
         (0., 0., self._estimate_robot_height(contacts)))
+    self._robot_com_position = robot_com_position
     robot_com_velocity = self._state_estimator.com_velocity_body_frame
     robot_com_roll_pitch_yaw = np.array(self._robot.GetBaseRollPitchYaw())
     robot_com_roll_pitch_yaw[2] = 0  # To prevent yaw drifting
