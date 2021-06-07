@@ -170,7 +170,7 @@ def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height
   controller.stance_leg_controller._desired_body_height = body_height
 
 def check_apex(controller, old_z_vel):
-  if old_z_vel <= 0 and controller.state_estimator._com_velocity_world_frame[2] >= 0:
+  if old_z_vel >= 0 and controller.state_estimator._com_velocity_world_frame[2] <= 0:
     return True
   return False
 
@@ -275,6 +275,7 @@ def main(argv):
         total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
         controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
         slip_solved = True
+        current_time = 0
     ## Update old z velocity
     old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
 
