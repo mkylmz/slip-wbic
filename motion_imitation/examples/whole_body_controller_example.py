@@ -210,11 +210,13 @@ def main(argv):
   controller = _setup_controller(robot)
 
   controller.reset()
+  """
   if FLAGS.use_gamepad:
     gamepad = gamepad_reader.Gamepad()
     command_function = gamepad.get_command
   else:
     command_function = _generate_example_linear_angular_speed
+  """
   
   aoa = 0
   rest_length = 0.25
@@ -283,7 +285,6 @@ def main(argv):
     if slip_active and slip_solved:
       lin_speed, ang_speed, body_height = command_function(slip_sol, current_time)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
-      print(lin_speed)
     else:
       _update_controller_params(controller,[0,0,0],0)
     controller.update()
