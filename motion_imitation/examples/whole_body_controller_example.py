@@ -217,11 +217,11 @@ def main(argv):
   else:
     command_function = _generate_example_linear_angular_speed
   """
-  
+
   aoa = 0
-  rest_length = 0.25
+  rest_length = 0.27
   dt = 0.001
-  myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
+  myslip = slip2d([0, 0.25, 0, 0, 0, 0], aoa, rest_length, dt)
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
@@ -233,8 +233,8 @@ def main(argv):
   current_time = start_time
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
-  K_p = 0.2
-  xdot_des = 0.1
+  K_p = 0.01
+  xdot_des = 0.2
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
@@ -266,6 +266,7 @@ def main(argv):
           x_f = rest_length
       aoa = math.asin(x_f/rest_length)
       myslip.set_aoa(aoa)
+      myslip.set_target_vel(xdot_des)
       ## Solve slip model
       slip_sol = myslip.step_apex_to_apex()
       if slip_sol.failed:
