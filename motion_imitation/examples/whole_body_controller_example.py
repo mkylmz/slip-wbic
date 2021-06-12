@@ -219,9 +219,9 @@ def main(argv):
   """
 
   aoa = 0
-  rest_length = 0.27
+  rest_length = 0.25
   dt = 0.001
-  myslip = slip2d([0, 0.25, 0, 0, 0, 0], aoa, rest_length, dt)
+  myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
@@ -234,7 +234,7 @@ def main(argv):
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
   K_p = 0.01
-  xdot_des = 0.2
+  xdot_des = 2
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
@@ -255,10 +255,9 @@ def main(argv):
     ## Apex-to-Apex slip model/controller
     if ( slip_active and check_apex(controller,old_z_vel) ):
       
-      # Update new state variables
+      # Get new state variables
       robot_vel = controller.state_estimator._com_velocity_body_frame
       robot_height = controller.stance_leg_controller._robot_com_position[2]
-      myslip.update_state( 0, robot_height, robot_vel[0], robot_vel[2])
       ## Use Raiberts controller
       xdot_avg = robot_vel[0]
       x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
@@ -267,6 +266,8 @@ def main(argv):
       aoa = math.asin(x_f/rest_length)
       myslip.set_aoa(aoa)
       myslip.set_target_vel(xdot_des)
+      # Update slip state
+      myslip.update_state( 0, robot_height, robot_vel[0], robot_vel[2])
       ## Solve slip model
       slip_sol = myslip.step_apex_to_apex()
       if slip_sol.failed:
@@ -287,7 +288,7 @@ def main(argv):
       lin_speed, ang_speed, body_height = command_function(slip_sol, current_time)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
     else:
-      _update_controller_params(controller,[0,0,0],0)
+      _update_controller_params_slip(controller, [0,0,0], 0, 0.3)
     controller.update()
     hybrid_action, _ = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())

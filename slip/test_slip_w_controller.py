@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import math
 
 rest_length = 0.25
-slip = slip2d([0, 0.30, 0, 0, 0, 0], 0, rest_length, 1/240)
+slip = slip2d([0, 0.32, 0, 0, 0, 0], 0, rest_length, 1/240)
 
 last_time = 0
 sol = slip.step_apex_to_apex()
-K_p = 0.05
-xdot_des = 0.2
+K_p = 0.01
+xdot_des = 2
 slip.set_target_vel(xdot_des)
 
 
