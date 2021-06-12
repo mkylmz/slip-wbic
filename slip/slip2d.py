@@ -15,11 +15,12 @@ class slip2d():
         self.dt         = dt
 
         self.mass       = 11.00
-        self.STIFFNESS  = 5000.0
+        self.STIFFNESS  = 8000.0
         self.r_length   = rest_length
         self.cur_length = rest_length
         self.aoa        = aoa
         self.target_vel = 0
+        self.target_h   = init_state[1]
 
         self.state[4]   = self.state[0]+np.sin(self.aoa)*rest_length
         self.state[5]   = self.state[1]-np.cos(self.aoa)*rest_length
@@ -38,7 +39,7 @@ class slip2d():
         GRAVITY = self.gravity
         MASS = self.mass
         RESTING_LENGTH = self.r_length
-        self.ENERGY_REQUIRED = 0.5*MASS*pow(self.target_vel,2) - 0.5*MASS*pow(self.state[2],2)
+        self.ENERGY_REQUIRED = MASS*GRAVITY*self.target_h - MASS*GRAVITY*self.state[1]
         self.ENERGY_INJECTED = False
 
         self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS  # FIXME: Is this name right?
@@ -81,6 +82,7 @@ class slip2d():
             leg_length = np.sqrt((x[0] - x[4]) ** 2 + (x[1] - x[5]) ** 2)
             if not self.ENERGY_INJECTED and x[3] > 0:
                 self.STIFFNESS = self.STIFFNESS + 2*self.ENERGY_REQUIRED/pow(RESTING_LENGTH - leg_length,2) 
+                #print(self.STIFFNESS)
                 self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS 
                 self.ENERGY_INJECTED = True
             xdotdot = -self.SPECIFIC_STIFFNESS * (RESTING_LENGTH - leg_length) \
