@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 
 rest_length = 0.27
-slip = slip2d([0, 0.32, 0, 0, 0, 0], 0, rest_length, 1/240)
+slip = slip2d([0, 0.30, 0, 0, 0, 0], 0, rest_length, 1/240)
 
 last_time = 0
 sol = slip.step_apex_to_apex()
@@ -15,7 +15,6 @@ xdot_des = 0.5
 slip.set_target_vel(xdot_des)
 
 for i in range(1,30):
-
 
     # Update time variables
     sol.t = last_time + sol.t
@@ -37,5 +36,6 @@ for i in range(1,30):
     ## Use slip model apex to apex
     sol = slip.step_apex_to_apex()
 
-print(i," timesteps could be calculated")
+print(i," slip models could be solver")
+print(sol.t[-1], "s is taken.")
 plt.show()
