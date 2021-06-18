@@ -15,7 +15,7 @@ class slip2d():
         self.dt         = dt
 
         self.mass       = 11.00
-        self.STIFFNESS  = 5000.0
+        self.STIFFNESS  = 10000.0
         self.r_length   = rest_length
         self.cur_length = rest_length
         self.aoa        = aoa
@@ -82,6 +82,8 @@ class slip2d():
             leg_length = np.sqrt((x[0] - x[4]) ** 2 + (x[1] - x[5]) ** 2)
             if not self.ENERGY_INJECTED and x[3] > 0:
                 self.STIFFNESS = self.STIFFNESS + 2*self.ENERGY_REQUIRED/pow(RESTING_LENGTH - leg_length,2) 
+                if self.STIFFNESS < 5000:
+                    self.STIFFNESS = 5000
                 #print(self.STIFFNESS)
                 self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS 
                 self.ENERGY_INJECTED = True

@@ -104,12 +104,19 @@ def _generate_example_linear_angular_speed(t):
 
   return speed[0:3], speed[3], False
 
-def _generate_slip_trajectory_tracking(slip_sol,t):
-  cur_timestep = t%slip_sol.t[-1]//0.001
-  # state vector [ x, y, xdot, ydot, toe_x, toe_y]
-  lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
-  ang_vel = 0
-  body_height = slip_sol.y[1][int(cur_timestep)]
+def _generate_slip_trajectory_tracking(slip_sol, t, desired_speed, desired_height):
+  if t < slip_sol.t[-1]:
+    cur_timestep = t%slip_sol.t[-1]//0.001
+    # state vector [ x, y, xdot, ydot, toe_x, toe_y]
+    lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
+    ang_vel = 0
+    body_height = slip_sol.y[1][int(cur_timestep)]
+  else:
+    cur_timestep = slip_sol.t[-1]//0.001
+    # state vector [ x, y, xdot, ydot, toe_x, toe_y]
+    lin_vel = [desired_speed,0,0]
+    ang_vel = 0
+    body_height = desired_height
   return lin_vel, ang_vel, body_height
 
 def _setup_controller(robot):
@@ -171,7 +178,10 @@ def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height
   controller.stance_leg_controller._desired_body_height = body_height
 
 def check_apex(controller, old_z_vel):
-  if old_z_vel >= 0 and controller.state_estimator._com_velocity_world_frame[2] <= 0:
+  robot_z_vel = controller.state_estimator._com_velocity_world_frame[2]
+  robot_height = controller.stance_leg_controller._robot_com_position[2]
+  #print("OLDZ: ", old_z_vel, " | NEWZ: ", robot_vel[2])
+  if old_z_vel >= 0 and robot_z_vel <= 0:
     return True
   return False
 
@@ -220,9 +230,10 @@ def main(argv):
   """
 
   aoa = 0
-  rest_length = 0.25
+  rest_length = 0.27
+  desired_height = 0.32
   dt = 0.001
-  myslip = slip2d([0, 0.32, 0, 0, 0, 0], aoa, rest_length, dt)
+  myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt)
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
@@ -235,7 +246,7 @@ def main(argv):
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
   K_p = 0.01
-  xdot_des = 2
+  xdot_des = 1
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
@@ -288,6 +299,7 @@ def main(argv):
         controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
         slip_solved = True
         current_time = 0
+        slip_current_time = 0
 
         if FLAGS.plot_slip:
           # Update variables
@@ -302,8 +314,9 @@ def main(argv):
 
     # Updates the controller behavior parameters.
     if slip_active and slip_solved:
-      lin_speed, ang_speed, body_height = command_function(slip_sol, current_time)
+      lin_speed, ang_speed, body_height = command_function(slip_sol, slip_current_time, xdot_des, desired_height)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
+      slip_current_time += dt
     else:
       _update_controller_params_slip(controller, [0,0,0], 0, 0.3)
     controller.update()
