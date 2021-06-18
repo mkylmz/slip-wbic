@@ -42,6 +42,7 @@ flags.DEFINE_bool("use_real_robot", False,
                   "whether to use real robot or simulation")
 flags.DEFINE_bool("show_gui", True, "whether to show GUI.")
 flags.DEFINE_float("max_time_secs", 1., "maximum time to run the robot.")
+flags.DEFINE_bool("plot_slip", False, "whether to plot slip results")
 FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
@@ -240,6 +241,13 @@ def main(argv):
   total_motion_time = 0
   slip_active = False
   slip_solved = False
+
+  if FLAGS.plot_slip:
+    slip_time = np.array([])
+    slip_sols = np.array([[],[],[],[],[],[]])
+    last_time = 0
+    last_x = 0
+
   while current_time - start_time < FLAGS.max_time_secs:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
@@ -280,6 +288,15 @@ def main(argv):
         controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
         slip_solved = True
         current_time = 0
+
+        if FLAGS.plot_slip:
+          # Update variables
+          slip_time = np.concatenate([slip_time, (last_time + slip_sol.t) ])
+          last_time = slip_time[-1]
+          slip_sol.y[0] = last_x + slip_sol.y[0]
+          last_x = slip_sol.y[0][-1]
+          slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
+
     ## Update old z velocity
     old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
 
@@ -303,8 +320,8 @@ def main(argv):
       if actual_duration < expected_duration:
         time.sleep(expected_duration - actual_duration)
     #print("actual_duration=", actual_duration)
-  if FLAGS.use_gamepad:
-    gamepad.stop()
+  """if FLAGS.use_gamepad:
+    gamepad.stop()"""
 
   if FLAGS.logdir:
     np.savez(os.path.join(logdir, 'action.npz'),
@@ -312,6 +329,30 @@ def main(argv):
              com_vels=com_vels,
              imu_rates=imu_rates)
     logging.info("logged to: {}".format(logdir))
+
+  if FLAGS.plot_slip: 
+    import matplotlib.pyplot as plt
+    fig1, ax1 = plt.subplots()
+    fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
+    fig3, ax4 = plt.subplots()
+    last_time = 0
+
+    # Plot Results
+    ax1.plot(slip_sols[0],slip_sols[1])
+    ax2.plot(slip_time, slip_sols[2])
+    ax3.plot(slip_time, slip_sols[3])
+    ax4.plot(slip_time, slip_sols[1])
+
+    ax1.set_title("X-Y graph")
+    ax1.set_xlabel("ground")
+    ax2.set_title("time vs xdot")
+    ax2.set_xlabel("time")
+    ax3.set_title("time vs ydot")
+    ax3.set_xlabel("time")
+    ax4.set_title("time vs y")
+    ax4.set_xlabel("time")
+    
+    plt.show()
 
 
 if __name__ == "__main__":
