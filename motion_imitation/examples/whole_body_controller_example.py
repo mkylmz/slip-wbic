@@ -258,6 +258,12 @@ def main(argv):
     slip_sols = np.array([[],[],[],[],[],[]])
     last_time = 0
     last_x = 0
+    robot_cur_time = 0
+    robot_times = np.array([])
+    robot_pos_x = np.array([])
+    robot_pos_z = np.array([])
+    robot_vel_x = np.array([])
+    robot_vel_z = np.array([])
 
   while current_time - start_time < FLAGS.max_time_secs:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
@@ -317,6 +323,15 @@ def main(argv):
       lin_speed, ang_speed, body_height = command_function(slip_sol, slip_current_time, xdot_des, desired_height)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
       slip_current_time += dt
+      if FLAGS.plot_slip:
+        robot_cur_time += dt
+        robot_times = np.append(robot_times,robot_cur_time)
+        robot_vel = controller.state_estimator._com_velocity_world_frame
+        robot_pos = controller.stance_leg_controller._robot_com_position
+        robot_pos_x = np.append(robot_pos_x, robot_pos[0])
+        robot_pos_z = np.append(robot_pos_z, robot_pos[2])
+        robot_vel_x = np.append(robot_vel_x, robot_vel[0])
+        robot_vel_z = np.append(robot_vel_z, robot_vel[2])
     else:
       _update_controller_params_slip(controller, [0,0,0], 0, 0.3)
     controller.update()
@@ -352,9 +367,13 @@ def main(argv):
 
     # Plot Results
     ax1.plot(slip_sols[0],slip_sols[1])
+    ax1.plot(robot_pos_x,robot_pos_z)
     ax2.plot(slip_time, slip_sols[2])
+    ax2.plot(robot_times, robot_vel_x)
     ax3.plot(slip_time, slip_sols[3])
+    ax3.plot(robot_times, robot_vel_z)
     ax4.plot(slip_time, slip_sols[1])
+    ax4.plot(robot_times, robot_pos_z)
 
     ax1.set_title("X-Y graph")
     ax1.set_xlabel("ground")
