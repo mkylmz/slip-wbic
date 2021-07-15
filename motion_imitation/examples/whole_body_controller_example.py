@@ -246,7 +246,7 @@ def main(argv):
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
   K_p = 0.01
-  xdot_des = 0
+  xdot_des = 1
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
@@ -301,7 +301,7 @@ def main(argv):
       else:
         total_motion_time = slip_sol.t_events[5][0]
         total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
-        total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
+        total_stance_time = (total_motion_time-total_flight_time)
         controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
         slip_solved = True
         #current_time = 0
@@ -311,8 +311,8 @@ def main(argv):
           # Update variables
           slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
           #last_time = slip_time[-1]
+          last_x = controller._robot.GetRobotPosition()[0]
           slip_sol.y[0] = last_x + slip_sol.y[0]
-          last_x = slip_sol.y[0][-1]
           slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
 
     ## Update old z velocity
