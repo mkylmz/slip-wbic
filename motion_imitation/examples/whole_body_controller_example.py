@@ -246,7 +246,7 @@ def main(argv):
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
   K_p = 0.01
-  xdot_des = 1
+  xdot_des = 0
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
@@ -342,6 +342,7 @@ def main(argv):
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
     slip_active = True
+    p.resetDebugVisualizerCamera(1.5, 30, -35, controller._robot.GetRobotPosition())
 
     if not FLAGS.use_real_robot:
       expected_duration = current_time - start_time_robot
