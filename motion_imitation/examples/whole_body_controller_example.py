@@ -363,7 +363,9 @@ def main(argv):
     fig1, ax1 = plt.subplots()
     fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
     fig3, ax4 = plt.subplots()
-    last_time = 0
+    fig1.canvas.manager.window.move(0, 0)
+    fig2.canvas.manager.window.move(710, 0)
+    fig3.canvas.manager.window.move(0, 585)
 
     # Plot Results
     ax1.plot(slip_sols[0],slip_sols[1])
