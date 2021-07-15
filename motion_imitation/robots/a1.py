@@ -461,6 +461,11 @@ class A1(minitaur.Minitaur):
     del cls
     return laikago_constants
 
+  # Debug purposes
+  def GetRobotPosition(self):
+    pose = self.pybullet_client.getBasePositionAndOrientation(self.quadruped)
+    return pose[0]
+
   def ComputeMotorAnglesFromFootLocalPosition(self, leg_id,
                                               foot_local_position):
     """Use IK to compute the motor angles, given the foot link's local position.

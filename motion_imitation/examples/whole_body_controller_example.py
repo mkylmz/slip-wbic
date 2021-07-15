@@ -304,13 +304,13 @@ def main(argv):
         total_stance_time = slip_sol.t_events[3][0] - slip_sol.t_events[1][0]
         controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
         slip_solved = True
-        current_time = 0
+        #current_time = 0
         slip_current_time = 0
 
         if FLAGS.plot_slip:
           # Update variables
-          slip_time = np.concatenate([slip_time, (last_time + slip_sol.t) ])
-          last_time = slip_time[-1]
+          slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
+          #last_time = slip_time[-1]
           slip_sol.y[0] = last_x + slip_sol.y[0]
           last_x = slip_sol.y[0][-1]
           slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
@@ -324,10 +324,10 @@ def main(argv):
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
       slip_current_time += dt
       if FLAGS.plot_slip:
-        robot_cur_time += dt
+        robot_cur_time = current_time
         robot_times = np.append(robot_times,robot_cur_time)
         robot_vel = controller.state_estimator._com_velocity_world_frame
-        robot_pos = controller.stance_leg_controller._robot_com_position
+        robot_pos = controller._robot.GetRobotPosition()
         robot_pos_x = np.append(robot_pos_x, robot_pos[0])
         robot_pos_z = np.append(robot_pos_z, robot_pos[2])
         robot_vel_x = np.append(robot_vel_x, robot_vel[0])
