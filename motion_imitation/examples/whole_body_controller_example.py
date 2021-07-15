@@ -341,6 +341,7 @@ def main(argv):
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
+    slip_active = True
 
     if not FLAGS.use_real_robot:
       expected_duration = current_time - start_time_robot
