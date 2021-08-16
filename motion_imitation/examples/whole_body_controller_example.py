@@ -24,9 +24,9 @@ from mpc_controller import gait_generator as gait_generator_lib
 from mpc_controller import locomotion_controller
 from mpc_controller import openloop_gait_generator
 from mpc_controller import raibert_swing_leg_controller
-#from mpc_controller import torque_stance_leg_controller
-#import mpc_osqp
-from mpc_controller import torque_stance_leg_controller_quadprog as torque_stance_leg_controller
+from mpc_controller import torque_stance_leg_controller
+import mpc_osqp
+#from mpc_controller import torque_stance_leg_controller_quadprog as torque_stance_leg_controller
 
 
 from motion_imitation.robots import a1
@@ -149,7 +149,7 @@ def _setup_controller(robot):
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
       desired_body_height=robot.MPC_BODY_HEIGHT
-      #,qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
+      ,qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
       )
 
   controller = locomotion_controller.LocomotionController(
@@ -282,8 +282,8 @@ def main(argv):
       
       # Get new state variables
       robot_vel = controller.state_estimator._com_velocity_body_frame
-      #robot_height = controller.stance_leg_controller._robot_com_position[2]
-      robot_height = controller._robot.GetRobotPosition()[2]
+      robot_height = controller.stance_leg_controller._robot_com_position[2]
+      #robot_height = controller._robot.GetRobotPosition()[2]
       ## Use Raiberts controller
       xdot_avg = robot_vel[0]
       x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)

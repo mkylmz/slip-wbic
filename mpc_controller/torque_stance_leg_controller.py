@@ -43,7 +43,7 @@ _FORCE_DIMENSION = 3
 # _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
 # This worked well for in-place stepping in the real robot.
 # _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 0.2, 1., 1., 0., 0)
-_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 1., 1., 1., 0., 0)
+_MPC_WEIGHTS = (5, 5, 0.2, 10, 0, 10, 0., 0., 10., 1., 10., 0., 0)
 _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
 
@@ -61,11 +61,10 @@ class TorqueStanceLegController(leg_controller.LegController):
       state_estimator: Any,
       desired_speed: Tuple[float, float] = (0, 0),
       desired_twisting_speed: float = 0,
-      desired_body_height: float = 0.45,
-      body_mass: float = 220 / 9.8,
+      desired_body_height: float = 0.32,
+      body_mass: float = 108 / 9.8,
       body_inertia: Tuple[float, float, float, float, float, float, float,
-                          float, float] = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0,
-                                           0.25447),
+                          float, float] = (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064) ,
       num_legs: int = 4,
       friction_coeffs: Sequence[float] = (0.45, 0.45, 0.45, 0.45),
       qp_solver = convex_mpc.QPOASES
@@ -118,7 +117,33 @@ class TorqueStanceLegController(leg_controller.LegController):
   def update(self, current_time):
     del current_time
 
+  def _estimate_robot_height(self, contacts):
+    if np.sum(contacts) == 0:
+      # All foot in air, no way to estimate
+      return self._desired_body_height
+    else:
+      base_orientation = self._robot.GetBaseOrientation()
+      rot_mat = self._robot.pybullet_client.getMatrixFromQuaternion(
+          base_orientation)
+      rot_mat = np.array(rot_mat).reshape((3, 3))
+
+      foot_positions = self._robot.GetFootPositionsInBaseFrame()
+      foot_positions_world_frame = (rot_mat.dot(foot_positions.T)).T
+      # pylint: disable=unsubscriptable-object
+      useful_heights = contacts * (-foot_positions_world_frame[:, 2])
+      return np.sum(useful_heights) / np.sum(contacts)
+
   def get_action(self):
+
+    # Actual q and dq
+    contacts = np.array(
+        [(leg_state in (gait_generator_lib.LegState.STANCE,
+                        gait_generator_lib.LegState.EARLY_CONTACT))
+         for leg_state in self._gait_generator.desired_leg_state],
+        dtype=np.int32)
+    robot_com_position = np.array(
+        (0., 0., self._estimate_robot_height(contacts)))
+    self._robot_com_position = robot_com_position
     """Computes the torque for stance legs."""
     desired_com_position = np.array((0., 0., self._desired_body_height),
                                     dtype=np.float64)
