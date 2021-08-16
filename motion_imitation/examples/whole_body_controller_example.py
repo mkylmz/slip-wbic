@@ -231,7 +231,7 @@ def main(argv):
 
   aoa = 0
   rest_length = 0.27
-  desired_height = 0.32
+  desired_height = 0.3
   dt = 0.001
   myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt)
   command_function = _generate_slip_trajectory_tracking
@@ -282,7 +282,8 @@ def main(argv):
       
       # Get new state variables
       robot_vel = controller.state_estimator._com_velocity_body_frame
-      robot_height = controller.stance_leg_controller._robot_com_position[2]
+      #robot_height = controller.stance_leg_controller._robot_com_position[2]
+      robot_height = controller._robot.GetRobotPosition()[2]
       ## Use Raiberts controller
       xdot_avg = robot_vel[0]
       x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
