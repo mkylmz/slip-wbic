@@ -24,9 +24,9 @@ from mpc_controller import gait_generator as gait_generator_lib
 from mpc_controller import locomotion_controller
 from mpc_controller import openloop_gait_generator
 from mpc_controller import raibert_swing_leg_controller
-from mpc_controller import torque_stance_leg_controller
-import mpc_osqp
-#from mpc_controller import torque_stance_leg_controller_quadprog as torque_stance_leg_controller
+#from mpc_controller import torque_stance_leg_controller
+#import mpc_osqp
+from mpc_controller import torque_stance_leg_controller_quadprog as torque_stance_leg_controller
 
 
 from motion_imitation.robots import a1
@@ -47,10 +47,6 @@ FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
 _MAX_TIME_SECONDS = 30.
-
-_STANCE_DURATION_SECONDS = [
-    0.3
-] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 
 # Standing
 # _DUTY_FACTOR = [1.] * 4
@@ -74,6 +70,7 @@ _STANCE_DURATION_SECONDS = [
 #     gait_generator_lib.LegState.SWING,
 # )
 
+_STANCE_DURATION_SECONDS = [0.3] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 # Trotting
 _DUTY_FACTOR = [0.6] * 4
 _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
@@ -85,6 +82,14 @@ _INIT_LEG_STATE = (
     gait_generator_lib.LegState.SWING,
 )
 
+#########################################################
+############### MY SLIP BASED PARAMETERS ################
+START_HEIGHT = 0.3
+DESIRED_HEIGHT = 0.3
+SLIP_KP = 0.01
+SLIP_DESIRED_XDOT = 1
+SLIP_AOA = 0
+SLIP_REST_LENGTH = 0.27
 
 def _generate_example_linear_angular_speed(t):
   """Creates an example speed profile based on time for demo purpose."""
@@ -149,7 +154,7 @@ def _setup_controller(robot):
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
       desired_body_height=robot.MPC_BODY_HEIGHT
-      ,qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
+      ,#qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
       )
 
   controller = locomotion_controller.LocomotionController(
@@ -229,9 +234,9 @@ def main(argv):
     command_function = _generate_example_linear_angular_speed
   """
 
-  aoa = 0
-  rest_length = 0.27
-  desired_height = 0.3
+  aoa = SLIP_AOA
+  rest_length = SLIP_REST_LENGTH
+  desired_height = DESIRED_HEIGHT
   dt = 0.001
   myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt)
   command_function = _generate_slip_trajectory_tracking
@@ -245,8 +250,8 @@ def main(argv):
   current_time = start_time
   com_vels, imu_rates, actions = [], [], []
   old_z_vel = 0
-  K_p = 0.01
-  xdot_des = 1
+  K_p = SLIP_KP
+  xdot_des = SLIP_DESIRED_XDOT
   total_stance_time = 0
   total_flight_time = 0
   total_motion_time = 0
