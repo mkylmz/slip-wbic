@@ -7,15 +7,15 @@ class slip2d():
     Vertical SLIP class for simple integration
     """
 
-    def __init__(self, init_state, aoa, rest_length, dt):
+    def __init__(self, init_state, aoa, rest_length, dt, stiffness):
 
         # state vector [ x, y, xdot, ydot, toe_x, toe_y]
         self.state      = [init_state[0], init_state[1], init_state[2], init_state[3], 0, 0]
-        self.gravity    = 9.81
+        self.gravity    = 9.8
         self.dt         = dt
 
-        self.mass       = 11.00
-        self.STIFFNESS  = 10000.0
+        self.mass       = 108.0 / self.gravity
+        self.STIFFNESS  = stiffness
         self.r_length   = rest_length
         self.cur_length = rest_length
         self.aoa        = aoa
@@ -39,8 +39,8 @@ class slip2d():
         GRAVITY = self.gravity
         MASS = self.mass
         RESTING_LENGTH = self.r_length
-        self.ENERGY_REQUIRED = MASS*GRAVITY*self.target_h - MASS*GRAVITY*self.state[1]
-        self.ENERGY_INJECTED = False
+        #self.ENERGY_REQUIRED = MASS*GRAVITY*self.target_h - MASS*GRAVITY*self.state[1]
+        #self.ENERGY_INJECTED = False
 
         self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS  # FIXME: Is this name right?
 
@@ -80,13 +80,13 @@ class slip2d():
             # print(energy)
             alpha = np.arctan2(x[1]-x[5], x[0]-x[4]) - HALF_PI
             leg_length = np.sqrt((x[0] - x[4]) ** 2 + (x[1] - x[5]) ** 2)
-            if not self.ENERGY_INJECTED and x[3] > 0:
-                self.STIFFNESS = self.STIFFNESS + 2*self.ENERGY_REQUIRED/pow(RESTING_LENGTH - leg_length,2) 
-                if self.STIFFNESS < 5000:
-                    self.STIFFNESS = 5000
-                #print(self.STIFFNESS)
-                self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS 
-                self.ENERGY_INJECTED = True
+            #if not self.ENERGY_INJECTED and x[3] > 0:
+            #    self.STIFFNESS = self.STIFFNESS + 2*self.ENERGY_REQUIRED/pow(RESTING_LENGTH - leg_length,2) 
+            #    if self.STIFFNESS < 5000:
+            #        self.STIFFNESS = 5000
+            #    #print(self.STIFFNESS)
+            #    self.SPECIFIC_STIFFNESS = self.STIFFNESS / MASS 
+            #    self.ENERGY_INJECTED = True
             xdotdot = -self.SPECIFIC_STIFFNESS * (RESTING_LENGTH - leg_length) \
                     * np.sin(alpha)
             ydotdot = self.SPECIFIC_STIFFNESS * (RESTING_LENGTH - leg_length) \
