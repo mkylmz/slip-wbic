@@ -9,9 +9,9 @@ rest_length = 0.27
 stiffness = 2000
 desired_height = 0.32
 desired_xdot = 1
-K_p = 0.1
 slip = slip2d([0, desired_height, desired_xdot, 0, 0, 0], aoa, rest_length, 1/240, stiffness)
 
+#K_p = 0.1
 last_time = 0
 sol = slip.step_apex_to_apex()
 slip.set_target_vel(desired_xdot)
