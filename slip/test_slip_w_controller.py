@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-aoa = 0.40586
+aoa = 0.36681785184152704
 rest_length = 0.27
-stiffness = 2000
-desired_height = 0.32
+stiffness = 3000
+desired_height = 0.3
 desired_xdot = 1
 slip = slip2d([0, desired_height, desired_xdot, 0, 0, 0], aoa, rest_length, 1/240, stiffness)
 
