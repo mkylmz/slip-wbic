@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-aoa = 0.36681785184152704
+aoa = 0.3667327599283879
 rest_length = 0.27
 stiffness = 3000
 desired_height = 0.3

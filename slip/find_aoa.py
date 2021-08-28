@@ -23,14 +23,15 @@ fig1.canvas.manager.window.move(0, 0)
 fig2.canvas.manager.window.move(710, 0)
 
 i = 0
-while ( ( abs(desired_height-sol.y[1][-1]) > 0.0001) and i < 1000 ):
+while ( ( abs(desired_height-sol.y[1][-1]) > 10e-6) and i < 1000 ):
     i = i + 1
 
     # Check if failed
     if sol.failed:
         break
 
-    if desired_height-sol.y[1][-1] > 0:
+    height_diff = desired_height-sol.y[1][-1]
+    if height_diff > 0:
         aoa = aoa * 1.001
     else:
         aoa = aoa * 0.999
@@ -42,7 +43,7 @@ while ( ( abs(desired_height-sol.y[1][-1]) > 0.0001) and i < 1000 ):
     sol = slip.step_apex_to_apex()
     print("Slip models height: ", sol.y[1][-1])
 
-print(i," slip models could be tried")
+print(i," slip models were tried")
 print("Found aoa as: ", aoa)
 
 # Plot Results
