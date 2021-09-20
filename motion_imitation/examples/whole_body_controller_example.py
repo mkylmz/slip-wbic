@@ -87,9 +87,10 @@ START_HEIGHT = 0.3
 DESIRED_HEIGHT = 0.3
 SLIP_KP = 0.01
 SLIP_DESIRED_XDOT = 1
-SLIP_AOA = 0
+SLIP_AOA = 0.3667327599283879
 SLIP_REST_LENGTH = 0.27
 SLIP_STIFFNESS = 3000
+SLIP_ACTIVATE_TIME = 5
 
 def _generate_example_linear_angular_speed(t):
   """Creates an example speed profile based on time for demo purpose."""
@@ -116,13 +117,14 @@ def _generate_slip_trajectory_tracking(slip_sol, t, desired_speed, desired_heigh
     lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
     ang_vel = 0
     body_height = slip_sol.y[1][int(cur_timestep)]
+    finish_flag = False
   else:
-    cur_timestep = slip_sol.t[-1]//0.001
     # state vector [ x, y, xdot, ydot, toe_x, toe_y]
     lin_vel = [desired_speed,0,0]
     ang_vel = 0
     body_height = desired_height
-  return lin_vel, ang_vel, body_height
+    finish_flag = True
+  return lin_vel, ang_vel, body_height, finish_flag
 
 def _setup_controller(robot):
   """Demonstrates how to create a locomotion controller."""
@@ -184,8 +186,6 @@ def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height
 
 def check_apex(controller, old_z_vel):
   robot_z_vel = controller.state_estimator._com_velocity_world_frame[2]
-  robot_height = controller.stance_leg_controller._robot_com_position[2]
-  #print("OLDZ: ", old_z_vel, " | NEWZ: ", robot_vel[2])
   if old_z_vel >= 0 and robot_z_vel <= 0:
     return True
   return False
@@ -257,6 +257,7 @@ def main(argv):
   total_motion_time = 0
   slip_active = False
   slip_solved = False
+  finish_flag = False
 
   if FLAGS.plot_slip:
     slip_time = np.array([])
@@ -270,63 +271,65 @@ def main(argv):
     robot_vel_x = np.array([])
     robot_vel_z = np.array([])
 
-  while current_time - start_time < _MAX_TIME_SECONDS:
+  while current_time - start_time < _MAX_TIME_SECONDS and not finish_flag :
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
 
     ## check whether to start slip
-    spaceKey = ord(' ')
-    keys = p.getKeyboardEvents()
-    if spaceKey in keys and keys[spaceKey] & p.KEY_WAS_TRIGGERED:
-        slip_active = not slip_active
+    if current_time - start_time > SLIP_ACTIVATE_TIME:
+        slip_active = True
 
 
     ## Apex-to-Apex slip model/controller
     if ( slip_active and check_apex(controller,old_z_vel) ):
-      
-      # Get new state variables
-      robot_vel = controller.state_estimator._com_velocity_body_frame
-      robot_height = controller.stance_leg_controller._robot_com_position[2]
-      #robot_height = controller._robot.GetRobotPosition()[2]
-      ## Use Raiberts controller
-      xdot_avg = robot_vel[0]
-      x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
-      if (x_f > rest_length):
-          x_f = rest_length
-      aoa = math.asin(x_f/rest_length)
-      myslip.set_aoa(aoa)
-      myslip.set_target_vel(xdot_des)
-      # Update slip state
-      myslip.update_state( 0, robot_height, robot_vel[0], robot_vel[2])
-      ## Solve slip model
-      slip_sol = myslip.step_apex_to_apex()
-      if slip_sol.failed:
-        slip_solved = False
-        print("Slip failed")
-      else:
-        total_motion_time = slip_sol.t_events[5][0]
-        total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
-        total_stance_time = (total_motion_time-total_flight_time)
-        controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
-        slip_solved = True
-        #current_time = 0
-        slip_current_time = 0
 
-        if FLAGS.plot_slip:
-          # Update variables
-          slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
-          #last_time = slip_time[-1]
-          last_x = controller._robot.GetRobotPosition()[0]
-          slip_sol.y[0] = last_x + slip_sol.y[0]
-          slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
+      if slip_solved:
+        if slip_current_time > slip_sol.t[-1]:
+          finish_flag = True
+      else:
+        # Get new state variables
+        robot_vel = controller.state_estimator._com_velocity_body_frame
+        robot_height = controller.stance_leg_controller._robot_com_position[2]
+        #robot_height = controller._robot.GetRobotPosition()[2]
+        ## Use Raiberts controller
+        """xdot_avg = robot_vel[0]
+        x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
+        if (x_f > rest_length):
+            x_f = rest_length
+        aoa = math.asin(x_f/rest_length)"""
+        myslip.set_aoa(SLIP_AOA)
+        myslip.set_target_vel(SLIP_DESIRED_XDOT)
+        # Update slip state
+        myslip.update_state( 0, robot_height, robot_vel[0], robot_vel[2])
+        ## Solve slip model
+        slip_sol = myslip.step_apex_to_apex()
+        if slip_sol.failed:
+          slip_solved = False
+          print("Slip failed")
+        else:
+          total_motion_time = slip_sol.t_events[5][0]
+          total_flight_time = slip_sol.t_events[1][0] + slip_sol.t_events[5][0] - slip_sol.t_events[3][0]
+          total_stance_time = (total_motion_time-total_flight_time)
+          controller.gait_generator.change_gait_parameters([total_stance_time]*4,[total_stance_time/total_motion_time]*4)
+          slip_solved = True
+          #current_time = 0
+          slip_current_time = 0
+
+          if FLAGS.plot_slip:
+            # Update variables
+            slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
+            #last_time = slip_time[-1]
+            last_x = controller._robot.GetRobotPosition()[0]
+            slip_sol.y[0] = last_x + slip_sol.y[0]
+            slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
 
     ## Update old z velocity
     old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
 
     # Updates the controller behavior parameters.
     if slip_active and slip_solved:
-      lin_speed, ang_speed, body_height = command_function(slip_sol, slip_current_time, xdot_des, desired_height)
+      lin_speed, ang_speed, body_height, finish_flag = command_function(slip_sol, slip_current_time, xdot_des, desired_height)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
       slip_current_time += dt
       if FLAGS.plot_slip:
@@ -339,7 +342,7 @@ def main(argv):
         robot_vel_x = np.append(robot_vel_x, robot_vel[0])
         robot_vel_z = np.append(robot_vel_z, robot_vel[2])
     else:
-      _update_controller_params_slip(controller, [0,0,0], 0, 0.3)
+      _update_controller_params_slip(controller, [SLIP_DESIRED_XDOT,0,0], 0, DESIRED_HEIGHT)
     controller.update()
     hybrid_action, _ = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
@@ -347,7 +350,6 @@ def main(argv):
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
-    slip_active = True
     p.resetDebugVisualizerCamera(1.5, 30, -35, controller._robot.GetRobotPosition())
 
     if not FLAGS.use_real_robot:
@@ -376,13 +378,13 @@ def main(argv):
     fig3.canvas.manager.window.move(0, 585)
 
     # Plot Results
-    ax1.plot(slip_sols[0],slip_sols[1])
+    ax1.plot(slip_sols[0],slip_sols[1],'.',markersize=1)
     ax1.plot(robot_pos_x,robot_pos_z)
-    ax2.plot(slip_time, slip_sols[2])
+    ax2.plot(slip_time, slip_sols[2],'.',markersize=1)
     ax2.plot(robot_times, robot_vel_x)
-    ax3.plot(slip_time, slip_sols[3])
+    ax3.plot(slip_time, slip_sols[3],'.',markersize=1)
     ax3.plot(robot_times, robot_vel_z)
-    ax4.plot(slip_time, slip_sols[1])
+    ax4.plot(slip_time, slip_sols[1],'.',markersize=1)
     ax4.plot(robot_times, robot_pos_z)
 
     ax1.set_title("X-Y graph")
