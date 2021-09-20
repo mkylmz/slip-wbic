@@ -90,6 +90,7 @@ SLIP_KP = 0.01
 SLIP_DESIRED_XDOT = 1
 SLIP_AOA = 0
 SLIP_REST_LENGTH = 0.27
+SLIP_STIFFNESS = 3000
 
 def _generate_example_linear_angular_speed(t):
   """Creates an example speed profile based on time for demo purpose."""
@@ -238,7 +239,7 @@ def main(argv):
   rest_length = SLIP_REST_LENGTH
   desired_height = DESIRED_HEIGHT
   dt = 0.001
-  myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt)
+  myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt, SLIP_STIFFNESS)
   command_function = _generate_slip_trajectory_tracking
 
   if FLAGS.logdir:
