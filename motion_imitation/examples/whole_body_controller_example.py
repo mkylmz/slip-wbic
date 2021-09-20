@@ -41,7 +41,6 @@ flags.DEFINE_bool("use_gamepad", False,
 flags.DEFINE_bool("use_real_robot", False,
                   "whether to use real robot or simulation")
 flags.DEFINE_bool("show_gui", True, "whether to show GUI.")
-flags.DEFINE_float("max_time_secs", 1., "maximum time to run the robot.")
 flags.DEFINE_bool("plot_slip", False, "whether to plot slip results")
 FLAGS = flags.FLAGS
 
@@ -271,7 +270,7 @@ def main(argv):
     robot_vel_x = np.array([])
     robot_vel_z = np.array([])
 
-  while current_time - start_time < FLAGS.max_time_secs:
+  while current_time - start_time < _MAX_TIME_SECONDS:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()

@@ -3,7 +3,7 @@
 example code for running slip-wbic:
 
 ```[bash]
-python3 -m motion_imitation.examples.whole_body_controller_example --show_gui --max_time_secs=20
+python3 -m motion_imitation.examples.whole_body_controller_example --show_gui --plot_slip
 ```
 
 after writing the correct parameters in their respective places:
