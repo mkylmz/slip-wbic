@@ -4,17 +4,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-aoa = 0.428357
-rest_length = 0.27
-stiffness = 3000
-desired_height = 0.30
-desired_xdot = 1
-slip = slip2d([0, desired_height, desired_xdot, 0, 0, 0], aoa, rest_length, 1/240, stiffness)
+START_HEIGHT = 0.3
+DESIRED_HEIGHT = 0.3
+SLIP_KP = 0.01
+SLIP_DESIRED_XDOT = 1
+SLIP_AOA = 0.3667327599283879
+SLIP_REST_LENGTH = 0.27
+SLIP_STIFFNESS = 3000
+SLIP_ACTIVATE_TIME = 5
+
+slip = slip2d([0, DESIRED_HEIGHT, SLIP_DESIRED_XDOT, 0, 0, 0], SLIP_AOA, SLIP_REST_LENGTH, 1/240, SLIP_STIFFNESS)
 
 #K_p = 0.1
 last_time = 0
 sol = slip.step_apex_to_apex()
-slip.set_target_vel(desired_xdot)
+slip.set_target_vel(SLIP_DESIRED_XDOT)
 
 fig1, ax1 = plt.subplots()
 fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
@@ -23,28 +27,28 @@ fig1.canvas.manager.window.move(0, 0)
 fig2.canvas.manager.window.move(710, 0)
 
 i = 0
-while ( ( abs(desired_height-sol.y[1][-1]) > 10e-6) and i < 1000 ):
+while ( ( abs(DESIRED_HEIGHT-sol.y[1][-1]) > 10e-6) and i < 1000 ):
     i = i + 1
 
     # Check if failed
     if sol.failed:
         break
 
-    height_diff = desired_height-sol.y[1][-1]
+    height_diff = DESIRED_HEIGHT-sol.y[1][-1]
     if height_diff > 0:
-        aoa = aoa * 1.001
+        SLIP_AOA = SLIP_AOA * 1.001
     else:
-        aoa = aoa * 0.999
+        SLIP_AOA = SLIP_AOA * 0.999
 
-    slip.set_aoa(aoa)
+    slip.set_aoa(SLIP_AOA)
     # Update new state variables
-    slip.update_state( 0,  desired_height, desired_xdot,  0)
+    slip.update_state( 0,  DESIRED_HEIGHT, SLIP_DESIRED_XDOT,  0)
     
     sol = slip.step_apex_to_apex()
     print("Slip models height: ", sol.y[1][-1])
 
 print(i," slip models were tried")
-print("Found aoa as: ", aoa)
+print("Found SLIP_AOA as: ", SLIP_AOA)
 
 # Plot Results
 ax1.plot(sol.y[0],sol.y[1])

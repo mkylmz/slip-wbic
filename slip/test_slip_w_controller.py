@@ -4,17 +4,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-aoa = 0.3667327599283879
-rest_length = 0.27
-stiffness = 3000
-desired_height = 0.3
-desired_xdot = 1
-slip = slip2d([0, desired_height, desired_xdot, 0, 0, 0], aoa, rest_length, 1/240, stiffness)
+START_HEIGHT = 0.3
+DESIRED_HEIGHT = 0.3
+SLIP_KP = 0.01
+SLIP_DESIRED_XDOT = 1
+SLIP_AOA = 0.3667327599283879
+SLIP_REST_LENGTH = 0.27
+SLIP_STIFFNESS = 3000
+SLIP_ACTIVATE_TIME = 5
+
+slip = slip2d([0, DESIRED_HEIGHT, SLIP_DESIRED_XDOT, 0, 0, 0], SLIP_AOA, SLIP_REST_LENGTH, 1/240, SLIP_STIFFNESS)
 
 #K_p = 0.1
 last_time = 0
 sol = slip.step_apex_to_apex()
-slip.set_target_vel(desired_xdot)
+slip.set_target_vel(SLIP_DESIRED_XDOT)
 
 fig1, ax1 = plt.subplots()
 ax1.plot(sol.y[0],sol.y[1])
@@ -41,13 +45,13 @@ for i in range(1,100):
     ## Use Raiberts controller
     #xdot_avg = sol.y[2][-1]#sum(sol.y[2]) / len(sol.y[2])
     #total_stance_time = sol.t_events[3][0] - sol.t_events[1][0]
-    #x_f = xdot_avg*total_stance_time/2 + K_p * (sol.y[2][-1]-desired_xdot)
-    #taoa = math.asin(x_f/rest_length)
-    slip.set_aoa(aoa)
+    #x_f = xdot_avg*total_stance_time/2 + K_p * (sol.y[2][-1]-SLIP_DESIRED_XDOT)
+    #taoa = math.asin(x_f/SLIP_REST_LENGTH)
+    slip.set_aoa(SLIP_AOA)
     # Update new state variables
     slip.update_state(sol.y[0][-1],sol.y[1][-1],sol.y[2][-1],sol.y[3][-1])
     # Print required variable
-    #print("AOA: ",aoa/math.pi*180)
+    #print("SLIP_AOA: ",SLIP_AOA/math.pi*180)
     #print("X_f: ",x_f)
     #print("total_stance_time: ",total_stance_time)
     ## Use slip model apex to apex
