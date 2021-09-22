@@ -45,7 +45,7 @@ flags.DEFINE_bool("plot_slip", False, "whether to plot slip results")
 FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
-_MAX_TIME_SECONDS = 30.
+_MAX_TIME_SECONDS = 10.
 
 # Standing
 # _DUTY_FACTOR = [1.] * 4
@@ -271,13 +271,13 @@ def main(argv):
     robot_vel_x = np.array([])
     robot_vel_z = np.array([])
 
-  while current_time - start_time < _MAX_TIME_SECONDS and not finish_flag :
+  while current_time - start_time < _MAX_TIME_SECONDS:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
 
     ## check whether to start slip
-    if current_time - start_time > SLIP_ACTIVATE_TIME:
+    if not finish_flag and (current_time - start_time > SLIP_ACTIVATE_TIME):
         slip_active = True
 
 
@@ -287,6 +287,7 @@ def main(argv):
       if slip_solved:
         if slip_current_time > slip_sol.t[-1]:
           finish_flag = True
+          slip_active = False
       else:
         # Get new state variables
         robot_vel = controller.state_estimator._com_velocity_body_frame
