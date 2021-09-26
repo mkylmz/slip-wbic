@@ -9,7 +9,8 @@ import numpy as np
 import quadprog  # pytype:disable=import-error
 np.set_printoptions(precision=3, suppress=True)
 
-ACC_WEIGHT = np.array([1., 1., 1., 10., 10, 1.])
+#ACC_WEIGHT = np.array([1., 1., 1., 10., 10, 1.])
+ACC_WEIGHT = np.array([1., 1., 5., 10., 1, 10.])
 
 
 # @numba.jit(nopython=True, parallel=True, cache=True)

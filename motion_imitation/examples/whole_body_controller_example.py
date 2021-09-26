@@ -72,7 +72,7 @@ _MAX_TIME_SECONDS = 10.
 _STANCE_DURATION_SECONDS = [0.3] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 # Trotting
 _DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+_INIT_PHASE_FULL_CYCLE = [1, 0, 0, 1]
 
 _INIT_LEG_STATE = (
     gait_generator_lib.LegState.SWING,
@@ -83,38 +83,21 @@ _INIT_LEG_STATE = (
 
 #########################################################
 ############### MY SLIP BASED PARAMETERS ################
-START_HEIGHT = 0.3
-DESIRED_HEIGHT = 0.3
+SLIP_DT = 0.002
+START_HEIGHT = 0.32
+DESIRED_HEIGHT = 0.32
 SLIP_KP = 0.01
 SLIP_DESIRED_XDOT = 1
-SLIP_AOA = 0.3667327599283879
-SLIP_REST_LENGTH = 0.27
-SLIP_STIFFNESS = 3000
+SLIP_AOA = 0.1519010943554561
+SLIP_REST_LENGTH = 0.31
+SLIP_STIFFNESS = 15000
 SLIP_ACTIVATE_TIME = 5
-
-def _generate_example_linear_angular_speed(t):
-  """Creates an example speed profile based on time for demo purpose."""
-  vx = 0.6
-  vy = 0.2
-  wz = 0.8
-
-  time_points = (0, 5, 10, 15, 20, 25, 30)
-  speed_points = ((0, 0, 0, 0), (0, 0, 0, wz), (vx, 0, 0, 0), (0, 0, 0, -wz),
-                  (0, -vy, 0, 0), (0, 0, 0, 0), (0, 0, 0, wz))
-
-  speed = scipy.interpolate.interp1d(time_points,
-                                     speed_points,
-                                     kind="previous",
-                                     fill_value="extrapolate",
-                                     axis=0)(t)
-
-  return speed[0:3], speed[3], False
 
 def _generate_slip_trajectory_tracking(slip_sol, t, desired_speed, desired_height):
   if t < slip_sol.t[-1]:
-    cur_timestep = t%slip_sol.t[-1]//0.001
+    cur_timestep = t//0.002
     # state vector [ x, y, xdot, ydot, toe_x, toe_y]
-    lin_vel = [slip_sol.y[2][int(cur_timestep)],0,0]
+    lin_vel = [slip_sol.y[2][int(cur_timestep)],0,slip_sol.y[3][int(cur_timestep)]]
     ang_vel = 0
     body_height = slip_sol.y[1][int(cur_timestep)]
     finish_flag = False
@@ -146,7 +129,7 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_height=robot.MPC_BODY_HEIGHT,
+      desired_height=DESIRED_HEIGHT,
       foot_clearance=0.01)
 
   st_controller = torque_stance_leg_controller.TorqueStanceLegController(
@@ -155,7 +138,7 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_body_height=robot.MPC_BODY_HEIGHT
+      desired_body_height=DESIRED_HEIGHT
       ,#qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
       )
 
@@ -167,13 +150,6 @@ def _setup_controller(robot):
       stance_leg_controller=st_controller,
       clock=robot.GetTimeSinceReset)
   return controller
-
-
-def _update_controller_params(controller, lin_speed, ang_speed):
-  controller.swing_leg_controller.desired_speed = lin_speed
-  controller.swing_leg_controller.desired_twisting_speed = ang_speed
-  controller.stance_leg_controller.desired_speed = lin_speed
-  controller.stance_leg_controller.desired_twisting_speed = ang_speed
 
 def _update_controller_params_slip(controller, lin_speed, ang_speed, body_height):
 
@@ -237,7 +213,7 @@ def main(argv):
   aoa = SLIP_AOA
   rest_length = SLIP_REST_LENGTH
   desired_height = DESIRED_HEIGHT
-  dt = 0.001
+  dt = SLIP_DT
   myslip = slip2d([0, desired_height, 0, 0, 0, 0], aoa, rest_length, dt, SLIP_STIFFNESS)
   command_function = _generate_slip_trajectory_tracking
 
@@ -261,7 +237,6 @@ def main(argv):
 
   slip_time = np.array([])
   slip_sols = np.array([[],[],[],[],[],[]])
-  last_time = 0
   last_x = 0
   robot_cur_time = 0
   robot_times = np.array([])
@@ -290,8 +265,8 @@ def main(argv):
       else:
         # Get new state variables
         robot_vel = controller.state_estimator._com_velocity_body_frame
-        robot_height = controller.stance_leg_controller._robot_com_position[2]
-        #robot_height = controller._robot.GetRobotPosition()[2]
+        #robot_height = controller.stance_leg_controller._robot_com_position[2]
+        robot_height = controller._robot.GetRobotPosition()[2]
         ## Use Raiberts controller
         """xdot_avg = robot_vel[0]
         x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
