@@ -259,17 +259,16 @@ def main(argv):
   slip_solved = False
   finish_flag = False
 
-  if FLAGS.plot_slip:
-    slip_time = np.array([])
-    slip_sols = np.array([[],[],[],[],[],[]])
-    last_time = 0
-    last_x = 0
-    robot_cur_time = 0
-    robot_times = np.array([])
-    robot_pos_x = np.array([])
-    robot_pos_z = np.array([])
-    robot_vel_x = np.array([])
-    robot_vel_z = np.array([])
+  slip_time = np.array([])
+  slip_sols = np.array([[],[],[],[],[],[]])
+  last_time = 0
+  last_x = 0
+  robot_cur_time = 0
+  robot_times = np.array([])
+  robot_pos_x = np.array([])
+  robot_pos_z = np.array([])
+  robot_vel_x = np.array([])
+  robot_vel_z = np.array([])
 
   while current_time - start_time < _MAX_TIME_SECONDS:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
@@ -317,13 +316,12 @@ def main(argv):
           #current_time = 0
           slip_current_time = 0
 
-          if FLAGS.plot_slip:
-            # Update variables
-            slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
-            #last_time = slip_time[-1]
-            last_x = controller._robot.GetRobotPosition()[0]
-            slip_sol.y[0] = last_x + slip_sol.y[0]
-            slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
+          # Update variables
+          slip_time = np.concatenate([slip_time, (current_time + slip_sol.t) ])
+          #last_time = slip_time[-1]
+          last_x = controller._robot.GetRobotPosition()[0]
+          slip_sol.y[0] = last_x + slip_sol.y[0]
+          slip_sols = np.concatenate([slip_sols, slip_sol.y ],axis=1)
 
     ## Update old z velocity
     old_z_vel = controller.state_estimator._com_velocity_world_frame[2]
@@ -333,17 +331,18 @@ def main(argv):
       lin_speed, ang_speed, body_height, finish_flag = command_function(slip_sol, slip_current_time, xdot_des, desired_height)
       _update_controller_params_slip(controller, lin_speed, ang_speed, body_height)
       slip_current_time += dt
-      if FLAGS.plot_slip:
-        robot_cur_time = current_time
-        robot_times = np.append(robot_times,robot_cur_time)
-        robot_vel = controller.state_estimator._com_velocity_world_frame
-        robot_pos = controller._robot.GetRobotPosition()
-        robot_pos_x = np.append(robot_pos_x, robot_pos[0])
-        robot_pos_z = np.append(robot_pos_z, robot_pos[2])
-        robot_vel_x = np.append(robot_vel_x, robot_vel[0])
-        robot_vel_z = np.append(robot_vel_z, robot_vel[2])
     else:
       _update_controller_params_slip(controller, [SLIP_DESIRED_XDOT,0,0], 0, DESIRED_HEIGHT)
+
+    robot_cur_time = current_time
+    robot_times = np.append(robot_times,robot_cur_time)
+    robot_vel = controller.state_estimator._com_velocity_world_frame
+    robot_pos = controller._robot.GetRobotPosition()
+    robot_pos_x = np.append(robot_pos_x, robot_pos[0])
+    robot_pos_z = np.append(robot_pos_z, robot_pos[2])
+    robot_vel_x = np.append(robot_vel_x, robot_vel[0])
+    robot_vel_z = np.append(robot_vel_z, robot_vel[2])
+
     controller.update()
     hybrid_action, _ = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
@@ -369,35 +368,34 @@ def main(argv):
              imu_rates=imu_rates)
     logging.info("logged to: {}".format(logdir))
 
-  if FLAGS.plot_slip: 
-    import matplotlib.pyplot as plt
-    fig1, ax1 = plt.subplots()
-    fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
-    fig3, ax4 = plt.subplots()
-    fig1.canvas.manager.window.move(0, 0)
-    fig2.canvas.manager.window.move(710, 0)
-    fig3.canvas.manager.window.move(0, 585)
+  import matplotlib.pyplot as plt
+  fig1, ax1 = plt.subplots()
+  fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
+  fig3, ax4 = plt.subplots()
+  fig1.canvas.manager.window.move(0, 0)
+  fig2.canvas.manager.window.move(710, 0)
+  fig3.canvas.manager.window.move(0, 585)
 
-    # Plot Results
-    ax1.plot(slip_sols[0],slip_sols[1],'.',markersize=1)
-    ax1.plot(robot_pos_x,robot_pos_z)
-    ax2.plot(slip_time, slip_sols[2],'.',markersize=1)
-    ax2.plot(robot_times, robot_vel_x)
-    ax3.plot(slip_time, slip_sols[3],'.',markersize=1)
-    ax3.plot(robot_times, robot_vel_z)
-    ax4.plot(slip_time, slip_sols[1],'.',markersize=1)
-    ax4.plot(robot_times, robot_pos_z)
+  # Plot Results
+  ax1.plot(slip_sols[0],slip_sols[1],'.',markersize=1)
+  ax1.plot(robot_pos_x,robot_pos_z)
+  ax2.plot(slip_time, slip_sols[2],'.',markersize=1)
+  ax2.plot(robot_times, robot_vel_x)
+  ax3.plot(slip_time, slip_sols[3],'.',markersize=1)
+  ax3.plot(robot_times, robot_vel_z)
+  ax4.plot(slip_time, slip_sols[1],'.',markersize=1)
+  ax4.plot(robot_times, robot_pos_z)
 
-    ax1.set_title("X-Y graph")
-    ax1.set_xlabel("ground")
-    ax2.set_title("time vs xdot")
-    ax2.set_xlabel("time")
-    ax3.set_title("time vs ydot")
-    ax3.set_xlabel("time")
-    ax4.set_title("time vs y")
-    ax4.set_xlabel("time")
-    
-    plt.show()
+  ax1.set_title("X-Y graph")
+  ax1.set_xlabel("ground")
+  ax2.set_title("time vs xdot")
+  ax2.set_xlabel("time")
+  ax3.set_title("time vs ydot")
+  ax3.set_xlabel("time")
+  ax4.set_title("time vs y")
+  ax4.set_xlabel("time")
+  
+  plt.show()
 
 
 if __name__ == "__main__":
