@@ -45,7 +45,7 @@ flags.DEFINE_bool("plot_slip", False, "whether to plot slip results")
 FLAGS = flags.FLAGS
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
-_MAX_TIME_SECONDS = 10.
+_MAX_TIME_SECONDS = 5.
 
 # Standing
 # _DUTY_FACTOR = [1.] * 4
@@ -72,7 +72,7 @@ _MAX_TIME_SECONDS = 10.
 _STANCE_DURATION_SECONDS = [0.3] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 # Trotting
 _DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [1, 0, 0, 1]
+_INIT_PHASE_FULL_CYCLE = [0, 0, 0, 0]
 
 _INIT_LEG_STATE = (
     gait_generator_lib.LegState.SWING,
@@ -88,10 +88,10 @@ START_HEIGHT = 0.32
 DESIRED_HEIGHT = 0.32
 SLIP_KP = 0.01
 SLIP_DESIRED_XDOT = 1
-SLIP_AOA = 0.1519010943554561
-SLIP_REST_LENGTH = 0.31
-SLIP_STIFFNESS = 15000
-SLIP_ACTIVATE_TIME = 5
+SLIP_AOA = 0.272251250523425
+SLIP_REST_LENGTH = 0.30
+SLIP_STIFFNESS = 5000
+SLIP_ACTIVATE_TIME = 2
 
 def _generate_slip_trajectory_tracking(slip_sol, t, desired_speed, desired_height):
   if t < slip_sol.t[-1]:
@@ -347,9 +347,11 @@ def main(argv):
   fig1, ax1 = plt.subplots()
   fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
   fig3, ax4 = plt.subplots()
+  fig4, ax5 = plt.subplots()
   fig1.canvas.manager.window.move(0, 0)
   fig2.canvas.manager.window.move(710, 0)
   fig3.canvas.manager.window.move(0, 585)
+  fig4.canvas.manager.window.move(710, 585)
 
   # Plot Results
   ax1.plot(slip_sols[0],slip_sols[1],'.',markersize=1)
@@ -360,6 +362,7 @@ def main(argv):
   ax3.plot(robot_times, robot_vel_z)
   ax4.plot(slip_time, slip_sols[1],'.',markersize=1)
   ax4.plot(robot_times, robot_pos_z)
+  ax5.plot(slip_time, slip_sols[1],'.',markersize=1)
 
   ax1.set_title("X-Y graph")
   ax1.set_xlabel("ground")
@@ -369,6 +372,8 @@ def main(argv):
   ax3.set_xlabel("time")
   ax4.set_title("time vs y")
   ax4.set_xlabel("time")
+  ax5.set_title("time vs y of slip")
+  ax5.set_xlabel("time")
   
   plt.show()
 
