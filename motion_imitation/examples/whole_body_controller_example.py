@@ -95,7 +95,7 @@ SLIP_ACTIVATE_TIME = 2
 
 def _generate_slip_trajectory_tracking(slip_sol, t, desired_speed, desired_height):
   if t < slip_sol.t[-1]:
-    cur_timestep = t//0.002
+    cur_timestep = t//SLIP_DT
     # state vector [ x, y, xdot, ydot, toe_x, toe_y]
     lin_vel = [slip_sol.y[2][int(cur_timestep)],0,slip_sol.y[3][int(cur_timestep)]]
     ang_vel = 0
@@ -265,8 +265,8 @@ def main(argv):
       else:
         # Get new state variables
         robot_vel = controller.state_estimator._com_velocity_body_frame
-        #robot_height = controller.stance_leg_controller._robot_com_position[2]
-        robot_height = controller._robot.GetRobotPosition()[2]
+        robot_height = controller.stance_leg_controller._robot_com_position[2]
+        #robot_height = controller._robot.GetRobotPosition()[2]
         ## Use Raiberts controller
         """xdot_avg = robot_vel[0]
         x_f = xdot_avg*total_stance_time/2 + K_p * (robot_vel[0]-xdot_des)
@@ -353,16 +353,18 @@ def main(argv):
   fig3.canvas.manager.window.move(0, 585)
   fig4.canvas.manager.window.move(710, 585)
 
+
   # Plot Results
-  ax1.plot(slip_sols[0],slip_sols[1],'.',markersize=1)
+  offset = robot_pos_z[int(slip_time[0]//SLIP_DT)]-slip_sols[1][0]
+  ax1.plot(slip_sols[0],offset+slip_sols[1],'.',markersize=1)
   ax1.plot(robot_pos_x,robot_pos_z)
   ax2.plot(slip_time, slip_sols[2],'.',markersize=1)
   ax2.plot(robot_times, robot_vel_x)
   ax3.plot(slip_time, slip_sols[3],'.',markersize=1)
   ax3.plot(robot_times, robot_vel_z)
-  ax4.plot(slip_time, slip_sols[1],'.',markersize=1)
+  ax4.plot(slip_time, offset+slip_sols[1],'.',markersize=1)
   ax4.plot(robot_times, robot_pos_z)
-  ax5.plot(slip_time, slip_sols[1],'.',markersize=1)
+  ax5.plot(slip_time, offset+slip_sols[1],'.',markersize=1)
 
   ax1.set_title("X-Y graph")
   ax1.set_xlabel("ground")
