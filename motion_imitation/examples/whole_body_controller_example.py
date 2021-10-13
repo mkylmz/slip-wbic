@@ -244,6 +244,7 @@ def main(argv):
   robot_pos_z = np.array([])
   robot_vel_x = np.array([])
   robot_vel_z = np.array([])
+  robot_contact_forces = np.zeros((4,3,1))
 
   while current_time - start_time < _MAX_TIME_SECONDS:
     #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
@@ -319,13 +320,15 @@ def main(argv):
     robot_vel_z = np.append(robot_vel_z, robot_vel[2])
 
     controller.update()
-    hybrid_action, _ = controller.get_action()
+    hybrid_action, contact_forces = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
     imu_rates.append(np.array(robot.GetBaseRollPitchYawRate()).copy())
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
     current_time = robot.GetTimeSinceReset()
     p.resetDebugVisualizerCamera(1.5, 30, -35, controller._robot.GetRobotPosition())
+
+    robot_contact_forces = np.append(robot_contact_forces, contact_forces["qp_sol"].reshape([4,3,1]),axis=2)
 
     if not FLAGS.use_real_robot:
       expected_duration = current_time - start_time_robot
@@ -343,15 +346,20 @@ def main(argv):
              imu_rates=imu_rates)
     logging.info("logged to: {}".format(logdir))
 
+  robot_contact_forces = robot_contact_forces[:,:,1:]
   import matplotlib.pyplot as plt
   fig1, ax1 = plt.subplots()
   fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1) # two axes on figure
   fig3, ax4 = plt.subplots()
   fig4, ax5 = plt.subplots()
+  fig5, (ax6, ax7, ax8, ax9) = plt.subplots(nrows=4, ncols=1) # two axes on figure
   fig1.canvas.manager.window.move(0, 0)
   fig2.canvas.manager.window.move(710, 0)
   fig3.canvas.manager.window.move(0, 585)
   fig4.canvas.manager.window.move(710, 585)
+  fig5.canvas.manager.window.move(1350, 0)
+  fig5.set_size_inches(fig5.get_figwidth(),2*fig5.get_figheight())
+
 
 
   # Plot Results
@@ -365,6 +373,10 @@ def main(argv):
   ax4.plot(slip_time, offset+slip_sols[1],'.',markersize=1)
   ax4.plot(robot_times, robot_pos_z)
   ax5.plot(slip_time, offset+slip_sols[1],'.',markersize=1)
+  ax6.plot(robot_times, robot_contact_forces[0,2])
+  ax7.plot(robot_times, robot_contact_forces[1,2])
+  ax8.plot(robot_times, robot_contact_forces[2,2])
+  ax9.plot(robot_times, robot_contact_forces[3,2])
 
   ax1.set_title("X-Y graph")
   ax1.set_xlabel("ground")
@@ -376,6 +388,14 @@ def main(argv):
   ax4.set_xlabel("time")
   ax5.set_title("time vs y of slip")
   ax5.set_xlabel("time")
+  ax6.set_title("time vs contact forces of leg 1")
+  ax6.set_xlabel("time")
+  ax7.set_title("time vs contact forces of leg 2")
+  ax7.set_xlabel("time")
+  ax8.set_title("time vs contact forces of leg 3")
+  ax8.set_xlabel("time")
+  ax9.set_title("time vs contact forces of leg 4")
+  ax9.set_xlabel("time")
   
   plt.show()
 
